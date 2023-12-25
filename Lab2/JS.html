@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<title>Генератор паролей</title>
+<style>
+  #passwordsDisplay {
+    margin-top: 20px; 
+  }
+</style>
+<script>
+// Получение информации о пользователе
+async function getUserInfo() {
+  const response = await fetch('https://api.ipify.org?format=json');
+  const data = await response.json();
+  
+  return {
+    ip: data.ip,
+    userAgent: navigator.userAgent
+  };
+}
+
+function generatePasswords() {
+  const length = parseInt(document.getElementById("length").value);
+  const includeLowercase = document.getElementById("includeLowercase").checked;
+  const includeUppercase = document.getElementById("includeUppercase").checked;
+  const includeNumbers = document.getElementById("includeNumbers").checked;
+  const includeSymbols = document.getElementById("includeSymbols").checked;
+  const numPasswords = parseInt(document.getElementById("numPasswords").value);
+
+  let charPool = "";
+
+  if (includeLowercase) charPool += "abcdefghijklmnopqrstuvwxyz";
+  if (includeUppercase) charPool += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  if (includeNumbers) charPool += "0123456789";
+  if (includeSymbols) charPool += `!"#$%&'()*+,-./:;<=>?@[\\]^_\`{|}~`;
+
+  let passwords = [];
+
+  for (let i = 0; i < numPasswords; i++) {
+    let password = "";
+    for (let j = 0; j < length; j++) {
+      const randomIndex = Math.floor(Math.random() * charPool.length);
+      password += charPool.charAt(randomIndex);
+    }
+    passwords.push(password);
+  }
+  
+  // Удаление старой ссылки, если она есть
+  const oldLink = document.getElementById("downloadLink");
+  if (oldLink) {
+    document.body.removeChild(oldLink);
+  }
+
+  displayPasswords(passwords);
+}
+
+function displayPasswords(passwords) {
+  const passwordsElement = document.getElementById("passwordsDisplay");
+  passwordsElement.innerHTML = '';
+  passwords.forEach(password => {
+    const passwordDiv = document.createElement('div');
+    passwordDiv.textContent = password;
+    passwordDiv.style.cursor = 'pointer';
+    passwordDiv.onclick = function() {
+      selectPassword(password);
+    };
+    passwordsElement.appendChild(passwordDiv);
+  });
+}
+
+// Функция для обработки выбранного пароля
+async function selectPassword(password) {
+  const userInfo = await getUserInfo();
+  
+ const text = `IP пользователя: ${userInfo.ip}\r\nUserAgent: ${userInfo.userAgent}\r\nВыбранный пароль: ${password}`;
+  
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'password_info.txt';
+  a.id = "downloadLink";
+  a.target = "_blank"; // Открывать в новой вкладке
+  document.body.appendChild(a);
+  a.click();
+  
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</head>
+<body>
+<h1>Генератор паролей</h1>
+<form>
+    <label for="length">Длина пароля:</label>
+    <input type="number" id="length" min="1" required><br><br>
+
+    <label for="charsets">Наборы символов:</label><br>
+    <input type="checkbox" id="includeLowercase" checked>
+    <label for="includeLowercase">Прописные буквы (a-z)</label><br>
+
+    <input type="checkbox" id="includeUppercase" checked>
+    <label for="includeUppercase">Заглавные буквы (A-Z)</label><br>
+
+    <input type="checkbox" id="includeNumbers" checked>
+    <label for="includeNumbers">Цифры (0-9)</label><br>
+
+    <input type="checkbox" id="includeSymbols" checked>
+    <label for="includeSymbols">Специальные символы (!@#$%^&*()_+=-{}[]|\:;'?,./) </label><br><br>
+
+    <label for="numPasswords">Количество паролей:</label>
+    <input type="number" id="numPasswords" min="1" required><br><br>
+
+    <input type="button" value="Сгенерировать пароли" onclick="generatePasswords()">
+</form>
+<div id="passwordsDisplay"></div>
+</body>
+</html>
